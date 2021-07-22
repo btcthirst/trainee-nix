@@ -119,12 +119,27 @@ func createPost(p Posts) error {
 func getPost(id uint64) Posts {
 	var p Posts
 	DB.Where("id=?", id).First(&p)
+	if p.ID == 0 {
+		p.ID = 100500
+		p.Title = "Phantom Post"
+		p.Body = "you can see this message because there are no posts in the database"
+		p.UserID = 100500
+	}
 	return p
 }
 
 func getAllPosts() []Posts {
 	var posts []Posts
-	DB.Find(&posts)
+	r := DB.Find(&posts)
+	if r.RowsAffected == 0 {
+		p := Posts{
+			ID:     100500,
+			Title:  "Phantom Post",
+			Body:   "you can see this message because there are no posts in the database",
+			UserID: 100500,
+		}
+		posts = append(posts, p)
+	}
 	return posts
 }
 
@@ -152,12 +167,29 @@ func createComment(c Comments) error {
 func getComment(id uint64) Comments {
 	var c Comments
 	DB.Where("id=?", id).First(&c)
+	if c.ID == 0 {
+		c.ID = 100500
+		c.Name = "Phantom Post"
+		c.Email = "Phantom Email"
+		c.Body = "you can see this message because there are no comments in the database"
+		c.PostID = 100500
+	}
 	return c
 }
 
 func getAllComments() []Comments {
 	var comments []Comments
-	DB.Find(&comments)
+	r := DB.Find(&comments)
+	if r.RowsAffected == 0 {
+		c := Comments{
+			ID:     100500,
+			Name:   "Phantom Post",
+			Email:  "Phantom Email",
+			Body:   "you can see this message because there are no comments in the database",
+			PostID: 100500,
+		}
+		comments = append(comments, c)
+	}
 	return comments
 }
 
