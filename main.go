@@ -1,10 +1,14 @@
 package main
 
 import (
+	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 
@@ -36,7 +40,8 @@ type SettingsDB struct {
 }
 
 var (
-	DB *gorm.DB
+	DB                 *gorm.DB
+	PresentationFormat = "JSON" //"XML"
 )
 
 ///////////////////service///////////////////////
@@ -85,6 +90,21 @@ func checkout(err error) {
 	}
 }
 
+func toHtml(w http.ResponseWriter, data interface{}, statusCode int) {
+	switch PresentationFormat {
+	case "JSON":
+		w.Header().Set("Content-type", "application/json; charset=UTF8")
+		w.WriteHeader(statusCode)
+		err := json.NewEncoder(w).Encode(data)
+		checkout(err)
+	case "XML":
+		w.Header().Set("Content-type", "application/xml; charset=UTF8")
+		w.WriteHeader(statusCode)
+		err := xml.NewEncoder(w).Encode(data)
+		checkout(err)
+	}
+}
+
 ///////////////////end service///////////////////////
 
 //////////////////CRUD`s/////////////////////////////
@@ -112,13 +132,21 @@ func updatePost(p Posts) {
 	DB.Save(&p)
 }
 
-func deletePost(id uint64) {
-	DB.Where("id=?", id).Delete(&Posts{})
+func deletePost(id uint64) error {
+	err := DB.Where("id=?", id).Delete(&Posts{}).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 ///Comments
-func createComment(c Comments) {
-	DB.Save(&c)
+func createComment(c Comments) error {
+
+	if err := DB.Create(&c).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 func getComment(id uint64) Comments {
@@ -137,16 +165,210 @@ func updateComment(c Comments) {
 	DB.Save(&c)
 }
 
-func deleteComment(id uint64) {
-	DB.Where("id=?", id).Delete(&Comments{})
+func deleteComment(id uint64) error {
+	err := DB.Where("id=?", id).Delete(&Comments{}).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 //////////////////end CRUD`s/////////////////////////
 
 ////////////////////handlers/////////////////////////
 func helloP(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "hello page")
+	toHtml(w, "hello page", http.StatusOK)
 }
+
+func postsPage(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		postPosts(w, r)
+	case http.MethodGet:
+		getPosts(w, r)
+	case http.MethodPut:
+		putPosts(w, r)
+	case http.MethodDelete:
+		deletePosts(w, r)
+	default:
+		data := fmt.Sprintf("%v -there is no such method on this page", r.Method)
+		toHtml(w, data, http.StatusMethodNotAllowed)
+	}
+}
+
+///methods for posts page
+
+func postPosts(w http.ResponseWriter, r *http.Request) {
+	var post Posts
+	defer r.Body.Close()
+	err := json.NewDecoder(r.Body).Decode(&post)
+	if err != nil {
+		toHtml(w, err, http.StatusNoContent)
+	} else {
+		err = createPost(post)
+		if err != nil {
+			toHtml(w, err, http.StatusBadRequest)
+		} else {
+			toHtml(w, post, http.StatusCreated)
+		}
+	}
+
+}
+
+func getPosts(w http.ResponseWriter, r *http.Request) {
+	slice := strings.Split(r.URL.String(), "/")
+	lastEl := slice[len(slice)-1]
+	if lastEl != "" {
+		id, err := strconv.ParseUint(lastEl, 10, 64)
+		if err != nil {
+			toHtml(w, "wrong id", http.StatusBadRequest)
+		}
+		posts := getPost(id)
+		toHtml(w, posts, http.StatusOK)
+	} else {
+		posts := getAllPosts()
+		toHtml(w, posts, http.StatusOK)
+	}
+}
+
+func putPosts(w http.ResponseWriter, r *http.Request) {
+	var post Posts
+	defer r.Body.Close()
+	err := json.NewDecoder(r.Body).Decode(&post)
+	if err != nil {
+		toHtml(w, err, http.StatusNoContent)
+	} else {
+		slice := strings.Split(r.URL.String(), "/")
+		lastEl := slice[len(slice)-1]
+		if lastEl != "" {
+			id, err := strconv.ParseUint(lastEl, 10, 64)
+			if err != nil {
+				toHtml(w, "wrong id", http.StatusBadRequest)
+			}
+			post.ID = id
+			updatePost(post)
+			toHtml(w, post, http.StatusOK)
+		} else {
+			toHtml(w, "no id", http.StatusBadRequest)
+		}
+	}
+
+}
+
+func deletePosts(w http.ResponseWriter, r *http.Request) {
+	slice := strings.Split(r.URL.String(), "/")
+	lastEl := slice[len(slice)-1]
+	if lastEl != "" {
+		id, err := strconv.ParseUint(lastEl, 10, 64)
+		if err != nil {
+			toHtml(w, "wrong id", http.StatusBadRequest)
+		}
+		err = deletePost(id)
+		if err != nil {
+			toHtml(w, err, http.StatusBadRequest)
+		}
+		toHtml(w, id, http.StatusOK)
+	} else {
+		toHtml(w, "no id", http.StatusBadRequest)
+	}
+}
+
+///end methods for posts page
+
+func commentsPage(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		postComments(w, r)
+	case http.MethodGet:
+		getComments(w, r)
+	case http.MethodPut:
+		putComments(w, r)
+	case http.MethodDelete:
+		deleteComments(w, r)
+	default:
+		data := fmt.Sprintf("%v -there is no such method on this page", r.Method)
+		toHtml(w, data, http.StatusMethodNotAllowed)
+	}
+}
+
+///methods for comments page
+
+func postComments(w http.ResponseWriter, r *http.Request) {
+	var comment Comments
+	defer r.Body.Close()
+	err := json.NewDecoder(r.Body).Decode(&comment)
+	if err != nil {
+		toHtml(w, err, http.StatusNoContent)
+	} else {
+		err = createComment(comment)
+		if err != nil {
+			toHtml(w, err, http.StatusBadRequest)
+		} else {
+			toHtml(w, comment, http.StatusCreated)
+		}
+	}
+
+}
+
+func getComments(w http.ResponseWriter, r *http.Request) {
+	slice := strings.Split(r.URL.String(), "/")
+	lastEl := slice[len(slice)-1]
+	if lastEl != "" {
+		id, err := strconv.ParseUint(lastEl, 10, 64)
+		if err != nil {
+			toHtml(w, "wrong id", http.StatusBadRequest)
+		}
+		comment := getComment(id)
+		toHtml(w, comment, http.StatusOK)
+	} else {
+		comments := getAllComments()
+		toHtml(w, comments, http.StatusOK)
+	}
+}
+
+func putComments(w http.ResponseWriter, r *http.Request) {
+	var comment Comments
+	defer r.Body.Close()
+	err := json.NewDecoder(r.Body).Decode(&comment)
+	if err != nil {
+		toHtml(w, err, http.StatusNoContent)
+	} else {
+		slice := strings.Split(r.URL.String(), "/")
+		lastEl := slice[len(slice)-1]
+		if lastEl != "" {
+			id, err := strconv.ParseUint(lastEl, 10, 64)
+			if err != nil {
+				toHtml(w, "wrong id", http.StatusBadRequest)
+			}
+			comment.ID = id
+			updateComment(comment)
+			toHtml(w, comment, http.StatusOK)
+		} else {
+			toHtml(w, "no id", http.StatusBadRequest)
+		}
+	}
+
+}
+
+func deleteComments(w http.ResponseWriter, r *http.Request) {
+	slice := strings.Split(r.URL.String(), "/")
+	lastEl := slice[len(slice)-1]
+	if lastEl != "" {
+		id, err := strconv.ParseUint(lastEl, 10, 64)
+		if err != nil {
+			toHtml(w, "wrong id", http.StatusBadRequest)
+		}
+		err = deleteComment(id)
+		if err != nil {
+			toHtml(w, err, http.StatusBadRequest)
+		}
+		toHtml(w, id, http.StatusOK)
+	} else {
+		toHtml(w, "no id", http.StatusBadRequest)
+	}
+}
+
+///end methods for posts page
 
 ////////////////////end handlers/////////////////////
 func main() {
@@ -154,6 +376,8 @@ func main() {
 	migrator()
 
 	http.HandleFunc("/", helloP)
+	http.HandleFunc("/posts/", postsPage)
+	http.HandleFunc("/comments/", commentsPage)
 
 	port := os.Getenv("PORT_SERVER")
 	log.Fatal(http.ListenAndServe(port, nil))
