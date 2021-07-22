@@ -39,6 +39,7 @@ var (
 	DB *gorm.DB
 )
 
+///////////////////service///////////////////////
 func initSettings() string {
 	// get env variables
 	err := godotenv.Load(".env")
@@ -84,10 +85,70 @@ func checkout(err error) {
 	}
 }
 
+///////////////////end service///////////////////////
+
+//////////////////CRUD`s/////////////////////////////
+///Posts
+func createPost(p Posts) error {
+	if err := DB.Create(&p).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func getPost(id uint64) Posts {
+	var p Posts
+	DB.Where("id=?", id).First(&p)
+	return p
+}
+
+func getAllPosts() []Posts {
+	var posts []Posts
+	DB.Find(&posts)
+	return posts
+}
+
+func updatePost(p Posts) {
+	DB.Save(&p)
+}
+
+func deletePost(id uint64) {
+	DB.Where("id=?", id).Delete(&Posts{})
+}
+
+///Comments
+func createComment(c Comments) {
+	DB.Save(&c)
+}
+
+func getComment(id uint64) Comments {
+	var c Comments
+	DB.Where("id=?", id).First(&c)
+	return c
+}
+
+func getAllComments() []Comments {
+	var comments []Comments
+	DB.Find(&comments)
+	return comments
+}
+
+func updateComment(c Comments) {
+	DB.Save(&c)
+}
+
+func deleteComment(id uint64) {
+	DB.Where("id=?", id).Delete(&Comments{})
+}
+
+//////////////////end CRUD`s/////////////////////////
+
+////////////////////handlers/////////////////////////
 func helloP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "hello page")
 }
 
+////////////////////end handlers/////////////////////
 func main() {
 	DB = initDB()
 	migrator()
