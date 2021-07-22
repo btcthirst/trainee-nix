@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -39,10 +37,9 @@ type SettingsDB struct {
 
 var (
 	DB *gorm.DB
-	c  chan int
 )
 
-func initSettingsDB() string {
+func initSettings() string {
 	// get env variables
 	err := godotenv.Load(".env")
 
@@ -64,7 +61,7 @@ func initSettingsDB() string {
 
 func initDB() *gorm.DB {
 
-	dsn := initSettingsDB()
+	dsn := initSettings()
 	//connect to mysql
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	checkout(err)
@@ -87,60 +84,16 @@ func checkout(err error) {
 	}
 }
 
-func getComments(postID uint64, c chan int) {
-
-	comments := new([]Comments)
-	//get comments from url
-	myURL := fmt.Sprintf("https://jsonplaceholder.typicode.com/comments?postId=%d", postID)
-	resp, err := http.Get(myURL)
-	checkout(err)
-
-	body, err := ioutil.ReadAll(resp.Body)
-	checkout(err)
-
-	err = json.Unmarshal(body, &comments)
-	checkout(err)
-	DB.Create(&comments)
-	c <- int(postID)
+func helloP(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "hello page")
 }
 
 func main() {
-	c = make(chan int, 2)
-	//before starting, a database must be created that will be used in work
 	DB = initDB()
 	migrator()
-	posts := new([]Posts)
-	userID := 7
-	//get posts from url
-	myURL := fmt.Sprintf("https://jsonplaceholder.typicode.com/posts?userId=%d", userID)
-	resp, err := http.Get(myURL)
-	checkout(err)
 
-	body, err := ioutil.ReadAll(resp.Body)
-	checkout(err)
+	http.HandleFunc("/", helloP)
 
-	err = json.Unmarshal(body, &posts)
-	checkout(err)
-	DB.Create(&posts)
-	for _, p := range *posts {
-
-		go getComments(p.ID, c)
-
-	}
-	a := 0
-	for {
-		if a > 9 {
-			close(c)
-		}
-		val, ok := <-c
-		if !ok {
-
-			break
-		} else {
-			a++
-			fmt.Println(val)
-		}
-
-	}
-
+	port := os.Getenv("PORT_SERVER")
+	log.Fatal(http.ListenAndServe(port, nil))
 }
