@@ -120,26 +120,23 @@ func getPost(id uint64) Posts {
 	var p Posts
 	DB.Where("id=?", id).First(&p)
 	if p.ID == 0 {
-		p.ID = 100500
-		p.Title = "Phantom Post"
-		p.Body = "you can see this message because there are no posts in the database"
-		p.UserID = 100500
+		p.Title = "No such post"
+		p.Body = "if you want to read this post maybe create it"
 	}
+
 	return p
 }
 
 func getAllPosts() []Posts {
 	var posts []Posts
-	r := DB.Find(&posts)
-	if r.RowsAffected == 0 {
-		p := Posts{
-			ID:     100500,
-			Title:  "Phantom Post",
-			Body:   "you can see this message because there are no posts in the database",
-			UserID: 100500,
-		}
+	DB.Find(&posts)
+	if len(posts) == 0 {
+		var p Posts
+		p.Title = "No any posts"
+		p.Body = "if you want to read some of these posts maybe post them"
 		posts = append(posts, p)
 	}
+
 	return posts
 }
 
@@ -168,26 +165,19 @@ func getComment(id uint64) Comments {
 	var c Comments
 	DB.Where("id=?", id).First(&c)
 	if c.ID == 0 {
-		c.ID = 100500
-		c.Name = "Phantom Post"
-		c.Email = "Phantom Email"
-		c.Body = "you can see this message because there are no comments in the database"
-		c.PostID = 100500
+		c.Name = "No such comment"
+		c.Body = "create a comment and try again"
 	}
 	return c
 }
 
 func getAllComments() []Comments {
 	var comments []Comments
-	r := DB.Find(&comments)
-	if r.RowsAffected == 0 {
-		c := Comments{
-			ID:     100500,
-			Name:   "Phantom Post",
-			Email:  "Phantom Email",
-			Body:   "you can see this message because there are no comments in the database",
-			PostID: 100500,
-		}
+	DB.Find(&comments)
+	if len(comments) == 0 {
+		var c Comments
+		c.Name = "No any comments"
+		c.Body = "create a comment and try again"
 		comments = append(comments, c)
 	}
 	return comments
@@ -235,13 +225,13 @@ func postPosts(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&post)
 	if err != nil {
-		toHtml(w, err, http.StatusNoContent)
+		toHtml(w, "empty post method", http.StatusBadRequest)
 	} else {
 		err = createPost(post)
 		if err != nil {
-			toHtml(w, err, http.StatusBadRequest)
+			toHtml(w, "post not created", http.StatusBadRequest)
 		} else {
-			toHtml(w, post, http.StatusCreated)
+			toHtml(w, "post created", http.StatusCreated)
 		}
 	}
 
@@ -299,7 +289,8 @@ func deletePosts(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			toHtml(w, err, http.StatusBadRequest)
 		}
-		toHtml(w, id, http.StatusOK)
+		res := fmt.Sprintf("deleted post with id %d", id)
+		toHtml(w, res, http.StatusOK)
 	} else {
 		toHtml(w, "no id", http.StatusBadRequest)
 	}
@@ -330,13 +321,13 @@ func postComments(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&comment)
 	if err != nil {
-		toHtml(w, err, http.StatusNoContent)
+		toHtml(w, "empty post method ", http.StatusBadRequest)
 	} else {
 		err = createComment(comment)
 		if err != nil {
-			toHtml(w, err, http.StatusBadRequest)
+			toHtml(w, "not created", http.StatusBadRequest)
 		} else {
-			toHtml(w, comment, http.StatusCreated)
+			toHtml(w, "comment created", http.StatusCreated)
 		}
 	}
 
@@ -392,9 +383,10 @@ func deleteComments(w http.ResponseWriter, r *http.Request) {
 		}
 		err = deleteComment(id)
 		if err != nil {
-			toHtml(w, err, http.StatusBadRequest)
+			toHtml(w, "not deleted ", http.StatusBadRequest)
 		}
-		toHtml(w, id, http.StatusOK)
+		res := fmt.Sprintf("deleted comment with id %d", id)
+		toHtml(w, res, http.StatusOK)
 	} else {
 		toHtml(w, "no id", http.StatusBadRequest)
 	}
