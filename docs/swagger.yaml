@@ -1,0 +1,13 @@
+basePath: /
+host: localhost
+info:
+  contact:
+    email: btcthirst@gmail.com
+    name: btcthirst
+    url: '...'
+  description: This is my server for practice.
+  termsOfService: http://swagger.io/terms/
+  title: Swagger Example API
+  version: "1.0"
+paths: {}
+swagger: "2.0"

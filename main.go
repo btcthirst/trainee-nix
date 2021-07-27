@@ -9,6 +9,9 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
+	echoSwagger "github.com/swaggo/echo-swagger"
+
+	_ "github.com/btcthirst/trainee-nix/docs"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -466,12 +469,25 @@ func deleteComments(c echo.Context) error {
 // end comments handlers
 
 //////////////////// end handlers /////////////////////
+
+// @title MY Example API
+// @version 1.0
+// @description This is my server for practice.
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name btcthirst
+// @contact.url ...
+// @contact.email btcthirst@gmail.com
+
+// @host localhost
+// @BasePath /
 func main() {
 	DB = initDB()
 	migrator()
 	e := echo.New()
 
 	e.GET("/", helloP)
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	posts := e.Group("/posts")
 	comments := e.Group("/comments")
