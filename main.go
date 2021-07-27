@@ -36,9 +36,13 @@ type SettingsDB struct {
 	user     string
 	password string
 }
+type Mess struct {
+	Message interface{}
+}
 
 var (
-	DB *gorm.DB
+	DB                 *gorm.DB
+	PresentationFormat = "JSON" // "XML"
 )
 
 ///////////////////service///////////////////////
@@ -87,10 +91,22 @@ func checkout(err error) {
 	}
 }
 
+func ToHTML(c echo.Context, statusCode int, m Mess) error {
+
+	if PresentationFormat == "XML" {
+		res := c.XML(statusCode, m)
+		return res
+	} else {
+		res := c.JSON(statusCode, m)
+		return res
+	}
+
+}
+
 ///////////////////end service///////////////////////
 
 //////////////////CRUD`s/////////////////////////////
-///Posts
+/* Posts */
 func createPost(p Posts) error {
 	if err := DB.Create(&p).Error; err != nil {
 		return err
@@ -122,8 +138,13 @@ func getAllPosts() []Posts {
 	return posts
 }
 
-func updatePost(p Posts) {
+func updatePost(p Posts) error {
+	var isP Posts
+	if err := DB.Where("id=?", p.ID).First(&isP).Error; err != nil {
+		return err
+	}
 	DB.Save(&p)
+	return nil
 }
 
 func deletePost(id uint64) error {
@@ -165,8 +186,14 @@ func getAllComments() []Comments {
 	return comments
 }
 
-func updateComment(c Comments) {
+func updateComment(c Comments) error {
+	var isC Comments
+
+	if err := DB.Where("id=?", c.ID).First(&isC).Error; err != nil {
+		return err
+	}
 	DB.Save(&c)
+	return nil
 }
 
 func deleteComment(id uint64) error {
@@ -179,203 +206,266 @@ func deleteComment(id uint64) error {
 
 //////////////////end CRUD`s/////////////////////////
 
-////////////////////handlers/////////////////////////
+//////////////////// handlers /////////////////////////
 func helloP(c echo.Context) error {
-
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	/* u := map[string]interface{}{
 		"message": "hello page",
-	})
+	} */
+	m := Mess{
+		Message: "Hello",
+	}
+
+	return ToHTML(c, http.StatusOK, m)
 
 }
 
-///methods for posts page
+/// posts handlers
 
 func postPosts(c echo.Context) error {
-	var post Posts
+	var (
+		post Posts
+		m    Mess
+	)
+
 	err := c.Bind(&post)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"message": "empty post method",
-		})
+		m.Message = "empty post method"
+
+		return ToHTML(c, http.StatusBadRequest, m)
+
 	} else {
 		err = createPost(post)
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]interface{}{
-				"message": "post not created",
-			})
+			m.Message = "post not created"
+
+			return ToHTML(c, http.StatusBadRequest, m)
 
 		} else {
-			return c.JSON(http.StatusCreated, map[string]interface{}{
-				"message": "post created",
-			})
+			m.Message = "post created"
 
+			return ToHTML(c, http.StatusCreated, m)
 		}
 	}
 
 }
 
 func getPostsBy(c echo.Context) error {
+	var m Mess
 
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"message": "wrong id",
-		})
+		m.Message = "wrong id"
+
+		return ToHTML(c, http.StatusBadRequest, m)
 
 	}
 	post := getPost(id)
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"post": post,
-	})
+
+	m.Message = post
+
+	return ToHTML(c, http.StatusOK, m)
 
 }
 
 func getPostsAll(c echo.Context) error {
 
 	posts := getAllPosts()
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"post": posts,
-	})
+	m := Mess{
+		Message: posts,
+	}
+
+	return ToHTML(c, http.StatusOK, m)
 
 }
 
 func putPosts(c echo.Context) error {
-	var post Posts
+	var (
+		post Posts
+		m    Mess
+	)
 	err := c.Bind(&post)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"message": "empty put",
-		})
+		m.Message = "empty put"
+
+		return ToHTML(c, http.StatusBadRequest, m)
+
 	}
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"message": "wrong id",
-		})
+		m.Message = "wrong id"
+
+		return ToHTML(c, http.StatusBadRequest, m)
 
 	}
 	post.ID = id
 
-	updatePost(post)
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"message": "post updated",
-	})
+	err = updatePost(post)
+	if err != nil {
+		m.Message = fmt.Sprint(err)
+
+		return ToHTML(c, http.StatusBadRequest, m)
+
+	}
+	m.Message = "post updated"
+
+	return ToHTML(c, http.StatusOK, m)
 
 }
 
 func deletePosts(c echo.Context) error {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	var (
+		id  uint64
+		err error
+		m   Mess
+	)
+	id, err = strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"message": "wrong id",
-		})
+		m.Message = "wrong id"
+
+		return ToHTML(c, http.StatusBadRequest, m)
 
 	}
 
 	err = deletePost(id)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"message": "wrong id",
-		})
+		m.Message = fmt.Sprint(err)
+
+		return ToHTML(c, http.StatusBadRequest, m)
+
 	}
 	res := fmt.Sprintf("deleted post with id %d", id)
-	return c.JSON(http.StatusBadRequest, map[string]interface{}{
-		"message": res,
-	})
+	m.Message = res
+
+	return ToHTML(c, http.StatusOK, m)
+
 }
 
-///end methods for posts page
+/// end posts handlers
 
-///methods for comments page
+/// comments handlers
 
 func postComments(c echo.Context) error {
-	var comment Comments
+	var (
+		comment Comments
+		m       Mess
+	)
 	err := c.Bind(&comment)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"message": "empty comment",
-		})
+		m.Message = "empty comment"
+
+		return ToHTML(c, http.StatusBadRequest, m)
+
 	} else {
 		err := createComment(comment)
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]interface{}{
-				"message": "comment not created",
-			})
+			m.Message = "comment not created"
+
+			return ToHTML(c, http.StatusBadRequest, m)
+
 		}
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"message": "comment created",
-		})
+		m.Message = "comment created"
+
+		return ToHTML(c, http.StatusOK, m)
+
 	}
 }
 
 func getCommentsAll(c echo.Context) error {
 	comments := getAllComments()
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"comments": comments,
-	})
+	m := Mess{
+		Message: comments,
+	}
+
+	return ToHTML(c, http.StatusOK, m)
+
 }
 
 func getCommentsBy(c echo.Context) error {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	var (
+		id  uint64
+		err error
+		m   Mess
+	)
+	id, err = strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"message": "wrong id",
-		})
+		m.Message = "wrong id"
+
+		return ToHTML(c, http.StatusBadRequest, m)
 
 	}
 	comment := getComment(id)
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"comment": comment,
-	})
+	m.Message = comment
+
+	return ToHTML(c, http.StatusOK, m)
 
 }
 
 func putComments(c echo.Context) error {
-	var comment Comments
-	err := c.Bind(&comment)
+	var (
+		comment Comments
+		m       Mess
+		id      uint64
+		err     error
+	)
+	err = c.Bind(&comment)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"message": "empty put",
-		})
+		m.Message = "empty put"
+
+		return ToHTML(c, http.StatusBadRequest, m)
+
 	}
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	id, err = strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"message": "wrong id",
-		})
+		m.Message = "wrong id"
+
+		return ToHTML(c, http.StatusBadRequest, m)
 
 	}
 	comment.ID = id
-	updateComment(comment)
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"message": "comment updated",
-	})
+	err = updateComment(comment)
+	if err != nil {
+
+		m.Message = fmt.Sprint(err)
+
+		return ToHTML(c, http.StatusBadRequest, m)
+
+	}
+	m.Message = "comment updated"
+
+	return ToHTML(c, http.StatusOK, m)
+
 }
 
 func deleteComments(c echo.Context) error {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	var (
+		id  uint64
+		err error
+		m   Mess
+	)
+	id, err = strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"message": "wrong id",
-		})
+		m.Message = "wrong id"
+
+		return ToHTML(c, http.StatusBadRequest, m)
 
 	}
 
 	err = deleteComment(id)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"message": "wrong id",
-		})
+		m.Message = fmt.Sprint(err)
+
+		return ToHTML(c, http.StatusBadRequest, m)
+
 	}
 	res := fmt.Sprintf("deleted comment with id %d", id)
-	return c.JSON(http.StatusBadRequest, map[string]interface{}{
-		"message": res,
-	})
+	m.Message = res
+
+	return ToHTML(c, http.StatusOK, m)
 }
 
-//end methods for posts page
+// end comments handlers
 
-////////////////////end handlers/////////////////////
+//////////////////// end handlers /////////////////////
 func main() {
 	DB = initDB()
 	migrator()
@@ -391,7 +481,7 @@ func main() {
 	posts.POST("/", postPosts)
 	posts.PUT("/:id", putPosts)
 	posts.DELETE("/:id", deletePosts)
-
+	//comments routers
 	comments.GET("/", getCommentsAll)
 	comments.GET("/:id", getCommentsBy)
 	comments.POST("/", postComments)
