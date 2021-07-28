@@ -17,6 +17,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// Comments struct use to database get/set data(front)
 type Comments struct {
 	PostID uint64 `json:"postId" gorm:"post_id"`
 	ID     uint64 `json:"id" gorm:"id"`
@@ -25,6 +26,7 @@ type Comments struct {
 	Body   string `json:"body" gorm:"body"`
 }
 
+// Posts struct use to database get/set data(front)
 type Posts struct {
 	UserID uint64 `json:"userId" gorm:"user_id"`
 	ID     uint64 `json:"id" gorm:"id"`
@@ -52,7 +54,9 @@ var (
 func initSettings() string {
 	// get env variables
 	err := godotenv.Load(".env")
-
+	if err != nil {
+		log.Fatal("Erorr load .env file")
+	}
 	setDB := SettingsDB{
 		host:     os.Getenv("host"),
 		port:     os.Getenv("port"),
@@ -61,9 +65,6 @@ func initSettings() string {
 		password: os.Getenv("password"),
 	}
 
-	if err != nil {
-		log.Fatal("Erorr load .env file")
-	}
 	// use env vars
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", setDB.user, setDB.password, setDB.host, setDB.port, setDB.database)
 	return dsn
@@ -210,6 +211,14 @@ func deleteComment(id uint64) error {
 //////////////////end CRUD`s/////////////////////////
 
 //////////////////// handlers /////////////////////////
+
+// heloP godoc
+// @Summary Show the hello message
+// @Tags root
+// @Produce json
+// @Produce xml
+// @Success 200 {object} Mess
+// @Router / [get]
 func helloP(c echo.Context) error {
 	/* u := map[string]interface{}{
 		"message": "hello page",
@@ -224,6 +233,18 @@ func helloP(c echo.Context) error {
 
 /// posts handlers
 
+// postPosts godoc
+// @Summary Create post
+// @Tags posts
+// @Param userId path int true "Posts.UserID"
+// @Param title path string true "Posts.Title"
+// @Param body path string true "Posts.Body"
+// @Accept json
+// @Produce json
+// @Produce xml
+// @Success 201 {object} Mess
+// @Failure 400 {object} Mess
+// @Router /posts/ [post]
 func postPosts(c echo.Context) error {
 	var (
 		post Posts
@@ -252,6 +273,16 @@ func postPosts(c echo.Context) error {
 
 }
 
+// getPostsBy godoc
+// @Summary Get post by id
+// @Tags posts
+// @Param id path int true "Posts.ID"
+// @Accept json
+// @Produce json
+// @Produce xml
+// @Success 200 {object} Mess
+// @Failure 400 {object} Mess
+// @Router /posts/:id [get]
 func getPostsBy(c echo.Context) error {
 	var m Mess
 
@@ -270,6 +301,13 @@ func getPostsBy(c echo.Context) error {
 
 }
 
+// getPostsAll godoc
+// @Summary Get all posts
+// @Tags posts
+// @Produce json
+// @Produce xml
+// @Success 200 {object} Mess
+// @Router /posts/ [get]
 func getPostsAll(c echo.Context) error {
 
 	posts := getAllPosts()
@@ -281,6 +319,19 @@ func getPostsAll(c echo.Context) error {
 
 }
 
+// putPosts godoc
+// @Summary update post
+// @Tags posts
+// @Param id path int true "Posts.ID"
+// @Param userId path int true "Posts.UserID"
+// @Param title path string true "Posts.Title"
+// @Param body path string true "Posts.Body"
+// @Accept json
+// @Produce json
+// @Produce xml
+// @Success 200 {object} Mess
+// @Failure 400 {object} Mess
+// @Router /posts/:id [put]
 func putPosts(c echo.Context) error {
 	var (
 		post Posts
@@ -315,6 +366,15 @@ func putPosts(c echo.Context) error {
 
 }
 
+// deletePosts godoc
+// @Summary delete post
+// @Tags posts
+// @Param id path int true "Posts.ID"
+// @Produce json
+// @Produce xml
+// @Success 200 {object} Mess
+// @Failure 400 {object} Mess
+// @Router /posts/:id [delete]
 func deletePosts(c echo.Context) error {
 	var (
 		id  uint64
@@ -347,6 +407,19 @@ func deletePosts(c echo.Context) error {
 
 /// comments handlers
 
+// postComments godoc
+// @Summary Create comment
+// @Tags comment
+// @Param postId path int true "Comments.PostID"
+// @Param name path string true "Comments.Name"
+// @Param email path string true "Comments.Email"
+// @Param body path string true "Comments.Body"
+// @Accept json
+// @Produce json
+// @Produce xml
+// @Success 201 {object} Mess
+// @Failure 400 {object} Mess
+// @Router /comments/ [post]
 func postComments(c echo.Context) error {
 	var (
 		comment Comments
@@ -368,11 +441,17 @@ func postComments(c echo.Context) error {
 		}
 		m.Message = "comment created"
 
-		return ToHTML(c, http.StatusOK, m)
+		return ToHTML(c, http.StatusCreated, m)
 
 	}
 }
 
+// getCommentsAll godoc
+// @Summary Get all comments
+// @Tags comment
+// @Produce json/xml
+// @Success 200 {object} Mess
+// @Router /comments/ [get]
 func getCommentsAll(c echo.Context) error {
 	comments := getAllComments()
 	m := Mess{
@@ -383,6 +462,16 @@ func getCommentsAll(c echo.Context) error {
 
 }
 
+// getCommentsBy godoc
+// @Summary Get comment by id
+// @Tags comment
+// @Param id path int true "Comments.ID"
+// @Accept json
+// @Produce json
+// @Produce xml
+// @Success 200 {object} Mess
+// @Failure 400 {object} Mess
+// @Router /comments/:id [get]
 func getCommentsBy(c echo.Context) error {
 	var (
 		id  uint64
@@ -403,6 +492,20 @@ func getCommentsBy(c echo.Context) error {
 
 }
 
+// putComments godoc
+// @Summary Update comment
+// @Tags comment
+// @Param id path int true "Comments.ID"
+// @Param postId path int true "Comments.PostID"
+// @Param name path string true "Comments.Name"
+// @Param email path string true "Comments.Email"
+// @Param body path string true "Comments.Body"
+// @Accept json
+// @Produce json
+// @Produce xml
+// @Success 200 {object} Mess
+// @Failure 400 {object} Mess
+// @Router /comments/:id [put]
 func putComments(c echo.Context) error {
 	var (
 		comment Comments
@@ -439,6 +542,16 @@ func putComments(c echo.Context) error {
 
 }
 
+// deleteComments godoc
+// @Summary delete comment
+// @Tags comment
+// @Param id path int true "Comments.ID"
+// @Accept json
+// @Produce json
+// @Produce xml
+// @Success 200 {object} Mess
+// @Failure 400 {object} Mess
+// @Router /comments/:id [delete]
 func deleteComments(c echo.Context) error {
 	var (
 		id  uint64
@@ -473,13 +586,12 @@ func deleteComments(c echo.Context) error {
 // @title MY Example API
 // @version 1.0
 // @description This is my server for practice.
-// @termsOfService http://swagger.io/terms/
 
 // @contact.name btcthirst
 // @contact.url ...
 // @contact.email btcthirst@gmail.com
 
-// @host localhost
+// @host localhost:8181
 // @BasePath /
 func main() {
 	DB = initDB()

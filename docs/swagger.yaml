@@ -1,5 +1,11 @@
 basePath: /
-host: localhost
+definitions:
+  main.Mess:
+    properties:
+      message:
+        type: object
+    type: object
+host: localhost:8181
 info:
   contact:
     email: btcthirst@gmail.com
@@ -7,7 +13,288 @@ info:
     url: '...'
   description: This is my server for practice.
   termsOfService: http://swagger.io/terms/
-  title: Swagger Example API
+  title: MY Example API
   version: "1.0"
-paths: {}
+paths:
+  /:
+    get:
+      produces:
+      - json/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Mess'
+      summary: Show the hello message
+      tags:
+      - root
+  /comments/:
+    get:
+      produces:
+      - json/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Mess'
+      summary: Get all comments
+      tags:
+      - comment
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Comments.PostID
+        in: path
+        name: postId
+        required: true
+        type: integer
+      - description: Comments.Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Comments.Email
+        in: path
+        name: email
+        required: true
+        type: string
+      - description: Comments.Body
+        in: path
+        name: body
+        required: true
+        type: string
+      produces:
+      - json/xml
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/main.Mess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.Mess'
+      summary: Create comment
+      tags:
+      - comment
+  /comments/:id:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Comments.ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - json/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Mess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.Mess'
+      summary: delete comment
+      tags:
+      - comment
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Comments.ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - json/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Mess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.Mess'
+      summary: Get comment by id
+      tags:
+      - comment
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Comments.ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Comments.PostID
+        in: path
+        name: postId
+        required: true
+        type: integer
+      - description: Comments.Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Comments.Email
+        in: path
+        name: email
+        required: true
+        type: string
+      - description: Comments.Body
+        in: path
+        name: body
+        required: true
+        type: string
+      produces:
+      - json/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Mess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.Mess'
+      summary: Update comment
+      tags:
+      - comment
+  /posts/:
+    get:
+      produces:
+      - json/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Mess'
+      summary: Get all posts
+      tags:
+      - posts
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Posts.UserID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      - description: Posts.Title
+        in: path
+        name: title
+        required: true
+        type: string
+      - description: Posts.Body
+        in: path
+        name: body
+        required: true
+        type: string
+      produces:
+      - application/json
+      - text/xml
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/main.Mess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.Mess'
+      summary: Create post
+      tags:
+      - posts
+  /posts/:id:
+    delete:
+      parameters:
+      - description: Posts.ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - json/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Mess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.Mess'
+      summary: delete post
+      tags:
+      - posts
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Posts.ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - json/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Mess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.Mess'
+      summary: Get post by id
+      tags:
+      - posts
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Posts.ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Posts.UserID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      - description: Posts.Title
+        in: path
+        name: title
+        required: true
+        type: string
+      - description: Posts.Body
+        in: path
+        name: body
+        required: true
+        type: string
+      produces:
+      - json/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Mess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.Mess'
+      summary: update post
+      tags:
+      - posts
 swagger: "2.0"
